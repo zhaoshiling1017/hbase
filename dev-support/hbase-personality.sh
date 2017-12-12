@@ -64,7 +64,25 @@ function personality_globals
 
   # Override the maven options
   MAVEN_OPTS="${MAVEN_OPTS:-"-Xmx3100M"}"
+}
 
+## @description  Parse extra arguments required by personalities, if any.
+## @audience     private
+## @stability    evolving
+function personality_parse_args
+{
+  declare i
+
+  for i in "$@"; do
+    case ${i} in
+      --exclude-tests-url=*)
+        EXCLUDE_TESTS_URL=${i#*=}
+      ;;
+      --include-tests-url=*)
+        INCLUDE_TESTS_URL=${i#*=}
+      ;;
+    esac
+  done
 }
 
 ## @description  Queue up modules for this personality
@@ -78,18 +96,18 @@ function personality_modules
   local testtype=$2
   local extra=""
 
-  yetus_debug "Personality: ${repostatus} ${testtype}"
+  yetus_info "Personality: ${repostatus} ${testtype}"
 
   clear_personality_queue
 
   extra="-DHBasePatchProcess"
 
-  if [[ ${testtype} == mvninstall ]] || [[ "${BUILDMODE}" == full ]]; then
+  if [[ ${testtype} == mvninstall ]]; then
     personality_enqueue_module . ${extra}
     return
   fi
 
-  if [[ ${testtype} = findbugs ]]; then
+  if [[ ${testtype} == findbugs ]]; then
     for module in "${CHANGED_MODULES[@]}"; do
       # skip findbugs on hbase-shell and hbase-it. hbase-it has nothing
       # in src/main/java where findbugs goes to look
@@ -115,10 +133,10 @@ function personality_modules
     fi
 
     extra="${extra} -PrunAllTests"
-    yetus_debug "EXCLUDE_TESTS_URL = ${EXCLUDE_TESTS_URL}"
-    yetus_debug "INCLUDE_TESTS_URL = ${INCLUDE_TESTS_URL}"
-    if [[ -n "$EXCLUDE_TESTS_URL" ]]; then
-        if wget "$EXCLUDE_TESTS_URL" -O "excludes"; then
+    yetus_info "EXCLUDE_TESTS_URL = ${EXCLUDE_TESTS_URL}"
+    yetus_info "INCLUDE_TESTS_URL = ${INCLUDE_TESTS_URL}"
+    if [[ -n "${EXCLUDE_TESTS_URL}" ]]; then
+        if wget "${EXCLUDE_TESTS_URL}" -O "excludes"; then
           excludes=$(cat excludes)
           yetus_debug "excludes=${excludes}"
           if [[ -n "${excludes}" ]]; then
@@ -165,7 +183,6 @@ function personality_modules
 ###################################################
 
 add_test_type shadedjars
-
 
 function shadedjars_initialize
 {
