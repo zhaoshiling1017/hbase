@@ -127,7 +127,7 @@ curl -L  -o personality.sh "${env.PROJET_PERSONALITY}"
         sh '''#!/usr/bin/env bash
           rm -rf "${OUTPUT_DIR}" && mkdir "${OUTPUT_DIR}"
           rm -rf "${OUTPUT_DIR}/machine" && mkdir "${OUTPUT_DIR}/machine"
-          "${BASEDIR}/dev-support/gather_machine_environment.sh" "${OUTPUT_DIR}/machine"
+          "${BASEDIR}/dev-support/gather_machine_environment.sh" "${OUTPUT_DIR_RELATIVE}/machine"
 '''
         sh """#!/usr/bin/env bash
           # for branch-1.1 we don't do jdk8 findbugs, so do it here
@@ -189,7 +189,7 @@ curl -L  -o personality.sh "${env.PROJET_PERSONALITY}"
         sh '''#!/usr/bin/env bash
           rm -rf "${OUTPUT_DIR}" && mkdir "${OUTPUT_DIR}"
           rm -rf "${OUTPUT_DIR}/machine" && mkdir "${OUTPUT_DIR}/machine"
-          "${BASEDIR}/dev-support/gather_machine_environment.sh" "${OUTPUT_DIR}/machine"
+          "${BASEDIR}/dev-support/gather_machine_environment.sh" "${OUTPUT_DIR_RELATIVE}/machine"
 '''
         sh "${env.BASEDIR}/dev-support/hbase_nightly_yetus.sh"
       }
@@ -245,7 +245,7 @@ curl -L  -o personality.sh "${env.PROJET_PERSONALITY}"
         sh '''#!/usr/bin/env bash
           rm -rf "${OUTPUT_DIR}" && mkdir "${OUTPUT_DIR}"
           rm -rf "${OUTPUT_DIR}/machine" && mkdir "${OUTPUT_DIR}/machine"
-          "${BASEDIR}/dev-support/gather_machine_environment.sh" "${OUTPUT_DIR}/machine"
+          "${BASEDIR}/dev-support/gather_machine_environment.sh" "${OUTPUT_DIR_RELATIVE}/machine"
 '''
         sh "${env.BASEDIR}/dev-support/hbase_nightly_yetus.sh"
       }

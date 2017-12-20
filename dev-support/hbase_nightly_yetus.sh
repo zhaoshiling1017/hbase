@@ -18,8 +18,8 @@
 
 declare -i missing_env=0
 # Validate params
-for required_env in "TESTS" "TOOLS" "BASEDIR" "ARCHIVE_PATTERN_LIST" "OUTPUT_RELATIVE" \
-                    "BRANCH_SPECIFIC_DOCKERFILE" "OUTPUTDIR" "PROJECT" "AUTHOR_IGNORE_LIST" \
+for required_env in "TESTS" "TOOLS" "BASEDIR" "ARCHIVE_PATTERN_LIST" "OUTPUT_DIR_RELATIVE" \
+                    "BRANCH_SPECIFIC_DOCKERFILE" "OUTPUT_DIR" "PROJECT" "AUTHOR_IGNORE_LIST" \
                     "WHITESPACE_IGNORE_LIST" "BRANCH_NAME" "TESTS_FILTER" "DEBUG" \
                     "USE_YETUS_PRERELEASE" "WORKSPACE" "YETUS_RELEASE"; do
   if [ -z "${!required_env}" ]; then
