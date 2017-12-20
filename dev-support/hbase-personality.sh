@@ -114,8 +114,6 @@ function personality_modules
     MODULES=(.)
   fi
 
-  # TODO: see compile phase is root only
-
   if [[ ${testtype} == mvninstall ]]; then
     personality_enqueue_module . ${extra}
     return
@@ -124,8 +122,9 @@ function personality_modules
   if [[ ${testtype} == findbugs ]]; then
     # Run findbugs on each module individually to diff pre-patch and post-patch results and
     # report new warnings for changed modules only.
-    # TODO: make sure root level findbugs works.
-    for module in "${MODULES[@]}"; do
+    # For some reason, findbugs on root is not working, but running on individual modules is
+    # working. For time being, let it run on original list of CHANGED_MODULES. HBASE-19491
+    for module in "${CHANGED_MODULES[@]}"; do
       # skip findbugs on hbase-shell and hbase-it. hbase-it has nothing
       # in src/main/java where findbugs goes to look
       if [[ ${module} == hbase-shell ]]; then
@@ -140,7 +139,6 @@ function personality_modules
     return
   fi
 
-  # TODO: check excludes/includes.
   # If EXCLUDE_TESTS_URL/INCLUDE_TESTS_URL is set, fetches the url
   # and sets -Dtest.exclude.pattern/-Dtest to exclude/include the
   # tests respectively.

@@ -170,13 +170,13 @@ curl -L  -o personality.sh "${env.PROJET_PERSONALITY}"
       }
     }
     stage ('yetus jdk8 checks') {
+      when {
+        not {
+          branch 'branch-1.1*'
+        }
+      }
       parallel {
         stage('hadoop2') {
-          when {
-            not {
-              branch 'branch-1.1*'
-            }
-          }
           environment {
             TESTS = 'mvninstall,compile,javac,unit,findbugs,htmlout'
             OUTPUT_DIR_SUFFIX = "jdk8"
@@ -221,7 +221,7 @@ curl -L  -o personality.sh "${env.PROJET_PERSONALITY}"
                 alwaysLinkToLastBuild: true,
                 // Has to be relative to WORKSPACE.
                 reportDir            : "${env.OUTPUT_DIR_RELATIVE}",
-                reportFiles          : 'console-report.html',
+                reportFiles          : 'console-report-hadoop2.html',
                 reportName           : 'JDK8 Nightly Build Report'
               ]
             }
@@ -253,7 +253,7 @@ curl -L  -o personality.sh "${env.PROJET_PERSONALITY}"
           }
           post {
             always {
-              junit testResults: "${env.OUTPUT_DIR_RELATIVE}/**/target/**/TEST-*.xml", allowEmptyResults: true
+              // junit testResults: "${env.OUTPUT_DIR_RELATIVE}/**/target/**/TEST-*.xml", allowEmptyResults: true
               // zip surefire reports.
               sh '''#!/bin/bash -e
             if [ -d "${OUTPUT_DIR}/archiver" ]; then
@@ -277,7 +277,7 @@ curl -L  -o personality.sh "${env.PROJET_PERSONALITY}"
                 alwaysLinkToLastBuild: true,
                 // Has to be relative to WORKSPACE
                 reportDir            : "${env.OUTPUT_DIR_RELATIVE}",
-                reportFiles          : 'console-report.html',
+                reportFiles          : 'console-report-hadoop3.html',
                 reportName           : 'JDK8 Hadoop3 Nightly Build Report'
               ]
             }
