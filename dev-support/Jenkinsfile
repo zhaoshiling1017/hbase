@@ -170,34 +170,36 @@ curl -L  -o personality.sh "${env.PROJET_PERSONALITY}"
       }
     }
     stage ('yetus jdk8 checks') {
-      when {
-        not {
-          branch 'branch-1.1*'
-        }
-      }
-      environment {
-        TESTS = 'mvninstall,compile,javac,unit,findbugs,htmlout'
-        OUTPUT_DIR_SUFFIX = "jdk8"
-        OUTPUT_DIR_RELATIVE = "output-${env.OUTPUT_DIR_SUFFIX}"
-        OUTPUT_DIR = "${env.WORKSPACE}/${env.OUTPUT_DIR_RELATIVE}"
-        // This isn't strictly needed on branches that only support jdk8, but doesn't hurt
-        // and is needed on branches that do both jdk7 and jdk8
-        SET_JAVA_HOME = '/usr/lib/jvm/java-8-openjdk-amd64'
-      }
-      steps {
-        unstash 'yetus'
-        sh '''#!/usr/bin/env bash
+      parallel {
+        stage('hadoop2') {
+          when {
+            not {
+              branch 'branch-1.1*'
+            }
+          }
+          environment {
+            TESTS = 'mvninstall,compile,javac,unit,findbugs,htmlout'
+            OUTPUT_DIR_SUFFIX = "jdk8"
+            OUTPUT_DIR_RELATIVE = "output-${env.OUTPUT_DIR_SUFFIX}"
+            OUTPUT_DIR = "${env.WORKSPACE}/${env.OUTPUT_DIR_RELATIVE}"
+            // This isn't strictly needed on branches that only support jdk8, but doesn't hurt
+            // and is needed on branches that do both jdk7 and jdk8
+            SET_JAVA_HOME = '/usr/lib/jvm/java-8-openjdk-amd64'
+          }
+          steps {
+            unstash 'yetus'
+            sh '''#!/usr/bin/env bash
           rm -rf "${OUTPUT_DIR}" && mkdir "${OUTPUT_DIR}"
           rm -rf "${OUTPUT_DIR}/machine" && mkdir "${OUTPUT_DIR}/machine"
           "${BASEDIR}/dev-support/gather_machine_environment.sh" "${OUTPUT_DIR_RELATIVE}/machine"
 '''
-        sh "${env.BASEDIR}/dev-support/hbase_nightly_yetus.sh"
-      }
-      post {
-        always {
-          junit testResults: "${env.OUTPUT_DIR_RELATIVE}/**/target/**/TEST-*.xml", allowEmptyResults: true
-          // zip surefire reports.
-          sh '''#!/bin/bash -e
+            sh "${env.BASEDIR}/dev-support/hbase_nightly_yetus.sh"
+          }
+          post {
+            always {
+              junit testResults: "${env.OUTPUT_DIR_RELATIVE}/**/target/**/TEST-*.xml", allowEmptyResults: true
+              // zip surefire reports.
+              sh '''#!/bin/bash -e
             if [ -d "${OUTPUT_DIR}/archiver" ]; then
               count=$(find "${OUTPUT_DIR}/archiver" -type f | wc -l)
               if [[ 0 -ne ${count} ]]; then
@@ -210,50 +212,50 @@ curl -L  -o personality.sh "${env.PROJET_PERSONALITY}"
               echo "No archiver directory, skipping compressing."
             fi
 '''
-          // Has to be relative to WORKSPACE.
-          archive "${env.OUTPUT_DIR_RELATIVE}/*"
-          archive "${env.OUTPUT_DIR_RELATIVE}/**/*"
-          publishHTML target: [
-            allowMissing: true,
-            keepAll: true,
-            alwaysLinkToLastBuild: true,
-            // Has to be relative to WORKSPACE.
-            reportDir: "${env.OUTPUT_DIR_RELATIVE}",
-            reportFiles: 'console-report.html',
-            reportName: 'JDK8 Nightly Build Report'
-          ]
+              // Has to be relative to WORKSPACE.
+              archive "${env.OUTPUT_DIR_RELATIVE}/*"
+              archive "${env.OUTPUT_DIR_RELATIVE}/**/*"
+              publishHTML target: [
+                allowMissing         : true,
+                keepAll              : true,
+                alwaysLinkToLastBuild: true,
+                // Has to be relative to WORKSPACE.
+                reportDir            : "${env.OUTPUT_DIR_RELATIVE}",
+                reportFiles          : 'console-report.html',
+                reportName           : 'JDK8 Nightly Build Report'
+              ]
+            }
+          }
         }
-      }
-    }
-    stage ('yetus jdk8 hadoop3 checks') {
-      when {
-        not {
-          branch 'branch-1*'
-        }
-      }
-      environment {
-        TESTS = 'mvninstall,compile,javac,unit,htmlout'
-        OUTPUT_DIR_SUFFIX = "jdk8-hadoop3"
-        OUTPUT_DIR_RELATIVE = "output-${env.OUTPUT_DIR_SUFFIX}"
-        OUTPUT_DIR = "${env.WORKSPACE}/${env.OUTPUT_DIR_RELATIVE}"
-        // This isn't strictly needed on branches that only support jdk8, but doesn't hurt
-        // and is needed on branches that do both jdk7 and jdk8
-        SET_JAVA_HOME = '/usr/lib/jvm/java-8-openjdk-amd64'
-      }
-      steps {
-        unstash 'yetus'
-        sh '''#!/usr/bin/env bash
+        stage('hadoop3') {
+          when {
+            not {
+              branch 'branch-1*'
+            }
+          }
+          environment {
+            TESTS = 'mvninstall,compile,javac,unit,htmlout'
+            OUTPUT_DIR_SUFFIX = "jdk8-hadoop3"
+            OUTPUT_DIR_RELATIVE = "output-${env.OUTPUT_DIR_SUFFIX}"
+            OUTPUT_DIR = "${env.WORKSPACE}/${env.OUTPUT_DIR_RELATIVE}"
+            // This isn't strictly needed on branches that only support jdk8, but doesn't hurt
+            // and is needed on branches that do both jdk7 and jdk8
+            SET_JAVA_HOME = '/usr/lib/jvm/java-8-openjdk-amd64'
+          }
+          steps {
+            unstash 'yetus'
+            sh '''#!/usr/bin/env bash
           rm -rf "${OUTPUT_DIR}" && mkdir "${OUTPUT_DIR}"
           rm -rf "${OUTPUT_DIR}/machine" && mkdir "${OUTPUT_DIR}/machine"
           "${BASEDIR}/dev-support/gather_machine_environment.sh" "${OUTPUT_DIR_RELATIVE}/machine"
 '''
-        sh "${env.BASEDIR}/dev-support/hbase_nightly_yetus.sh"
-      }
-      post {
-        always {
-          junit testResults: "${env.OUTPUT_DIR_RELATIVE}/**/target/**/TEST-*.xml", allowEmptyResults: true
-          // zip surefire reports.
-          sh '''#!/bin/bash -e
+            sh "${env.BASEDIR}/dev-support/hbase_nightly_yetus.sh"
+          }
+          post {
+            always {
+              junit testResults: "${env.OUTPUT_DIR_RELATIVE}/**/target/**/TEST-*.xml", allowEmptyResults: true
+              // zip surefire reports.
+              sh '''#!/bin/bash -e
             if [ -d "${OUTPUT_DIR}/archiver" ]; then
               count=$(find "${OUTPUT_DIR}/archiver" -type f | wc -l)
               if [[ 0 -ne ${count} ]]; then
@@ -266,18 +268,20 @@ curl -L  -o personality.sh "${env.PROJET_PERSONALITY}"
               echo "No archiver directory, skipping compressing."
             fi
 '''
-          // Has to be relative to WORKSPACE.
-          archive "${env.OUTPUT_DIR_RELATIVE}/*"
-          archive "${env.OUTPUT_DIR_RELATIVE}/**/*"
-          publishHTML target: [
-            allowMissing: true,
-            keepAll: true,
-            alwaysLinkToLastBuild: true,
-            // Has to be relative to WORKSPACE
-            reportDir: "${env.OUTPUT_DIR_RELATIVE}",
-            reportFiles: 'console-report.html',
-            reportName: 'JDK8 Hadoop3 Nightly Build Report'
-          ]
+              // Has to be relative to WORKSPACE.
+              archive "${env.OUTPUT_DIR_RELATIVE}/*"
+              archive "${env.OUTPUT_DIR_RELATIVE}/**/*"
+              publishHTML target: [
+                allowMissing         : true,
+                keepAll              : true,
+                alwaysLinkToLastBuild: true,
+                // Has to be relative to WORKSPACE
+                reportDir            : "${env.OUTPUT_DIR_RELATIVE}",
+                reportFiles          : 'console-report.html',
+                reportName           : 'JDK8 Hadoop3 Nightly Build Report'
+              ]
+            }
+          }
         }
       }
     }

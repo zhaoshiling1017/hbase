@@ -114,6 +114,8 @@ function personality_modules
     MODULES=(.)
   fi
 
+  # TODO: see compile phase is root only
+
   if [[ ${testtype} == mvninstall ]]; then
     personality_enqueue_module . ${extra}
     return
@@ -138,6 +140,7 @@ function personality_modules
     return
   fi
 
+  # TODO: check excludes/includes.
   # If EXCLUDE_TESTS_URL/INCLUDE_TESTS_URL is set, fetches the url
   # and sets -Dtest.exclude.pattern/-Dtest to exclude/include the
   # tests respectively.
