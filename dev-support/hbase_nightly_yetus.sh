@@ -53,6 +53,7 @@ YETUS_ARGS=("--build-url-patchdir=artifact/${OUTPUT_DIR_RELATIVE}" "${YETUS_ARGS
 YETUS_ARGS=("--build-url-artifacts=artifact/${OUTPUT_DIR_RELATIVE}" "${YETUS_ARGS[@]}")
 YETUS_ARGS=("--docker" "${YETUS_ARGS[@]}")
 YETUS_ARGS=("--dockerfile=${BRANCH_SPECIFIC_DOCKERFILE}" "${YETUS_ARGS[@]}")
+# Yetus sets BUILDMODE env variable to "full" if this arg is passed.
 YETUS_ARGS=("--empty-patch" "${YETUS_ARGS[@]}")
 YETUS_ARGS=("--html-report-file=${OUTPUT_DIR}/console-report.html" "${YETUS_ARGS[@]}")
 YETUS_ARGS=("--jenkins" "${YETUS_ARGS[@]}")

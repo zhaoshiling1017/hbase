@@ -95,6 +95,7 @@ function personality_modules
   local repostatus=$1
   local testtype=$2
   local extra=""
+  local MODULES=(${CHANGED_MODULES[@]})
 
   yetus_info "Personality: ${repostatus} ${testtype}"
 
@@ -102,13 +103,27 @@ function personality_modules
 
   extra="-DHBasePatchProcess"
 
+  # BUILDMODE value is 'full' when there is no patch and we are running checks on full source code.
+  # In this case, do full compiles, tests, findbugs etc instead of per module.
+  # Used in nightly runs.
+  if [[ "${BUILDMODE}" == "full" ]]; then
+    MODULES=(.)
+  elif [[ "${testtype}" == unit || "${testtype}" == compile ]] && [[ "${MODULES[*]}" =~ \. ]]; then
+    # For unit and compile testtypes, if root is included, no need to run for individual modules.
+    # HBASE-18505
+    MODULES=(.)
+  fi
+
   if [[ ${testtype} == mvninstall ]]; then
     personality_enqueue_module . ${extra}
     return
   fi
 
   if [[ ${testtype} == findbugs ]]; then
-    for module in "${CHANGED_MODULES[@]}"; do
+    # Run findbugs on each module individually to diff pre-patch and post-patch results and
+    # report new warnings for changed modules only.
+    # TODO: make sure root level findbugs works.
+    for module in "${MODULES[@]}"; do
       # skip findbugs on hbase-shell and hbase-it. hbase-it has nothing
       # in src/main/java where findbugs goes to look
       if [[ ${module} == hbase-shell ]]; then
@@ -126,40 +141,9 @@ function personality_modules
   # If EXCLUDE_TESTS_URL/INCLUDE_TESTS_URL is set, fetches the url
   # and sets -Dtest.exclude.pattern/-Dtest to exclude/include the
   # tests respectively.
-  if [[ ${testtype} = unit ]]; then
-    # if the modules include root, skip all the submodules HBASE-18505
-    if [[ "${CHANGED_MODULES[*]}" =~ \. ]]; then
-      CHANGED_MODULES=(.)
-    fi
-
-    extra="${extra} -PrunAllTests"
-    yetus_info "EXCLUDE_TESTS_URL = ${EXCLUDE_TESTS_URL}"
-    yetus_info "INCLUDE_TESTS_URL = ${INCLUDE_TESTS_URL}"
-    if [[ -n "${EXCLUDE_TESTS_URL}" ]]; then
-        if wget "${EXCLUDE_TESTS_URL}" -O "excludes"; then
-          excludes=$(cat excludes)
-          yetus_debug "excludes=${excludes}"
-          if [[ -n "${excludes}" ]]; then
-            extra="${extra} -Dtest.exclude.pattern=${excludes}"
-          fi
-          rm excludes
-        else
-          echo "Wget error $? in fetching excludes file from url" \
-               "${EXCLUDE_TESTS_URL}. Ignoring and proceeding."
-        fi
-    elif [[ -n "$INCLUDE_TESTS_URL" ]]; then
-        if wget "$INCLUDE_TESTS_URL" -O "includes"; then
-          includes=$(cat includes)
-          yetus_debug "includes=${includes}"
-          if [[ -n "${includes}" ]]; then
-            extra="${extra} -Dtest=${includes}"
-          fi
-          rm includes
-        else
-          echo "Wget error $? in fetching includes file from url" \
-               "${INCLUDE_TESTS_URL}. Ignoring and proceeding."
-        fi
-    fi
+  if [[ ${testtype} == unit ]]; then
+    get_include_exclude_tests_arg tests_arg
+    extra="${extra} -PrunAllTests ${tests_arg}"
 
     # Inject the jenkins build-id for our surefire invocations
     # Used by zombie detection stuff, even though we're not including that yet.
@@ -168,10 +152,48 @@ function personality_modules
     fi
   fi
 
-  for module in "${CHANGED_MODULES[@]}"; do
+  for module in "${MODULES[@]}"; do
     # shellcheck disable=SC2086
     personality_enqueue_module ${module} ${extra}
   done
+}
+
+## @description  Uses relevant include/exclude env variable to fetch list of included/excluded
+#                tests and sets given variable to arguments to be passes to maven command.
+## @audience     private
+## @stability    evolving
+## @param        name of variable to set with maven arguments
+function get_include_exclude_tests_arg
+{
+  local  __resultvar=$1
+  yetus_info "EXCLUDE_TESTS_URL=${EXCLUDE_TESTS_URL}"
+  yetus_info "INCLUDE_TESTS_URL=${INCLUDE_TESTS_URL}"
+  eval $__resultvar=""
+  if [[ -n "${EXCLUDE_TESTS_URL}" ]]; then
+      if wget "${EXCLUDE_TESTS_URL}" -O "excludes"; then
+        excludes=$(cat excludes)
+        yetus_debug "excludes=${excludes}"
+        if [[ -n "${excludes}" ]]; then
+          eval $__resultvar="-Dtest.exclude.pattern=${excludes}"
+        fi
+        rm excludes
+      else
+        yetus_error "Wget error $? in fetching excludes file from url" \
+             "${EXCLUDE_TESTS_URL}. Ignoring and proceeding."
+      fi
+  elif [[ -n "$INCLUDE_TESTS_URL" ]]; then
+      if wget "$INCLUDE_TESTS_URL" -O "includes"; then
+        includes=$(cat includes)
+        yetus_debug "includes=${includes}"
+        if [[ -n "${includes}" ]]; then
+          eval $__resultvar="-Dtest=${includes}"
+        fi
+        rm includes
+      else
+        yetus_error "Wget error $? in fetching includes file from url" \
+             "${INCLUDE_TESTS_URL}. Ignoring and proceeding."
+      fi
+  fi
 }
 
 ###################################################
